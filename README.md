@@ -81,3 +81,9 @@ want to shuffle more commonly accessed items nearer to the top of the
 treap for faster access, at the potential cost of not approaching a
 probabilistic O(lg N) tree height, then you might tweak the priority.
 
+See also
+========
+
+For a simple, ordered, key-value storage or persistence library built
+on immutable treaps, see: https://github.com/steveyen/gkvlite
+
