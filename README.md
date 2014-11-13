@@ -3,6 +3,8 @@ gtreap
 
 gtreap is an immutable treap implementation in the Go Language
 
+[![GoDoc](https://godoc.org/github.com/steveyen/gtreap?status.svg)](https://godoc.org/github.com/steveyen/gtreap) [![Build Status](https://drone.io/github.com/steveyen/gtreap/status.png)](https://drone.io/github.com/steveyen/gtreap/latest) [![Coverage Status](https://coveralls.io/repos/steveyen/gtreap/badge.png)](https://coveralls.io/r/steveyen/gtreap)
+
 Overview
 ========
 
@@ -86,4 +88,3 @@ See also
 
 For a simple, ordered, key-value storage or persistence library built
 on immutable treaps, see: https://github.com/steveyen/gkvlite
-
