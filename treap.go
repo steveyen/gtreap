@@ -29,13 +29,10 @@ func (t *Treap) Min() Item {
 	if n == nil {
 		return nil
 	}
-	for {
-		if n.left == nil {
-			return n.item
-		}
+	for n.left != nil {
 		n = n.left
 	}
-	return nil
+	return n.item
 }
 
 func (t *Treap) Max() Item {
@@ -43,13 +40,10 @@ func (t *Treap) Max() Item {
 	if n == nil {
 		return nil
 	}
-	for {
-		if n.right == nil {
-			return n.item
-		}
+	for n.right != nil {
 		n = n.right
 	}
-	return nil
+	return n.item
 }
 
 func (t *Treap) Get(target Item) Item {
