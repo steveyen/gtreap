@@ -48,10 +48,7 @@ func (t *Treap) Max() Item {
 
 func (t *Treap) Get(target Item) Item {
 	n := t.root
-	for {
-		if n == nil {
-			break
-		}
+	for n != nil {
 		c := t.compare(target, n.item)
 		if c < 0 {
 			n = n.left
@@ -106,9 +103,9 @@ func (t *Treap) union(this *node, that *node) *node {
 // Splits a treap into two treaps based on a split item "s".
 // The result tuple-3 means (left, X, right), where X is either...
 // nil - meaning the item s was not in the original treap.
-// non-null - returning the node that had item s.
-// The tuple-3's left result has items < s,
-// and the tuple-3's right result has items > s.
+// non-nil - returning the node that had item s.
+// The tuple-3's left result treap has items < s,
+// and the tuple-3's right result treap has items > s.
 func (t *Treap) split(n *node, s Item) (*node, *node, *node) {
 	if n == nil {
 		return nil, nil, nil
