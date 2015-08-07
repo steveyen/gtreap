@@ -221,5 +221,39 @@ func TestVisitEndEarly(t *testing.T) {
 		visitExpectEndAtC(t, x, "f", []string{})
 	}
 	visitX()
+}
 
+func TestPriorityAfterUpsert(t *testing.T) {
+	// See https://github.com/steveyen/gtreap/issues/3 found by icexin.
+
+	var check func(n *node, level int, expectedPriority map[string]int)
+	check = func(n *node, level int, expectedPriority map[string]int) {
+		if n == nil {
+			return
+		}
+		if n.priority != expectedPriority[n.item.(string)] {
+			t.Errorf("wrong priority")
+		}
+		check(n.left, level+1, expectedPriority)
+		check(n.right, level+1, expectedPriority)
+	}
+
+	s := NewTreap(stringCompare)
+	s = s.Upsert("m", 20)
+	s = s.Upsert("l", 18)
+	s = s.Upsert("n", 19)
+
+	check(s.root, 0, map[string]int{
+		"m": 20,
+		"l": 18,
+		"n": 19,
+	})
+
+	s = s.Upsert("m", 4)
+
+	check(s.root, 0, map[string]int{
+		"m": 20,
+		"l": 18,
+		"n": 19,
+	})
 }

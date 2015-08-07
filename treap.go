@@ -61,6 +61,10 @@ func (t *Treap) Get(target Item) Item {
 	return nil
 }
 
+// Note: only the priority of the first insert of an item is used.
+// Priorities from future updates on already existing items are
+// ignored.  To change the priority for an item, you need to do a
+// Delete then an Upsert.
 func (t *Treap) Upsert(item Item, itemPriority int) *Treap {
 	r := t.union(t.root, &node{item: item, priority: itemPriority})
 	return &Treap{compare: t.compare, root: r}
@@ -85,7 +89,7 @@ func (t *Treap) union(this *node, that *node) *node {
 		}
 		return &node{
 			item:     middle.item,
-			priority: middle.priority,
+			priority: this.priority,
 			left:     t.union(this.left, left),
 			right:    t.union(this.right, right),
 		}
