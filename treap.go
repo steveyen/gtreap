@@ -104,12 +104,29 @@ func (t *Treap) union(this *node, that *node) *node {
 	}
 }
 
-// Splits a treap into two treaps based on a split item "s".
+// Splits a treap into three treaps based on a split item "s".
 // The result tuple-3 means (left, X, right), where X is either...
 // nil - meaning the item s was not in the original treap.
-// non-nil - returning the node that had item s.
-// The tuple-3's left result treap has items < s,
-// and the tuple-3's right result treap has items > s.
+// non-nil - returning a treap with a single node having item s.
+// The tuple-3's left result has items < s,
+// and the tuple-3's right result has items > s.
+func (t *Treap) Split(s Item) (*Treap, *Treap, *Treap) {
+	nleft, nmiddle, nright := t.split(t.root, s)
+
+	left := &Treap{compare: t.compare, root: nleft}
+	var middle *Treap
+	if nmiddle != nil {
+		middle = &Treap{compare: t.compare, root: &node{
+			item:     nmiddle.item,
+			priority: nmiddle.priority,
+			left:     nil,
+			right:    nil,
+		}}
+	}
+	right := &Treap{compare: t.compare, root: nright}
+	return left, middle, right
+}
+
 func (t *Treap) split(n *node, s Item) (*node, *node, *node) {
 	if n == nil {
 		return nil, nil, nil
@@ -167,7 +184,7 @@ func (t *Treap) join(this *node, that *node) *node {
 
 type ItemVisitor func(i Item) bool
 
-// Visit items greater-than-or-equal to the pivot.
+// Visit items greater-than-or-equal to the pivot.  If the pivot is null, this visits all items in ascending order.
 func (t *Treap) VisitAscend(pivot Item, visitor ItemVisitor) {
 	t.visitAscend(t.root, pivot, visitor)
 }
@@ -176,13 +193,37 @@ func (t *Treap) visitAscend(n *node, pivot Item, visitor ItemVisitor) bool {
 	if n == nil {
 		return true
 	}
-	if t.compare(pivot, n.item) <= 0 {
+	if pivot == nil || t.compare(pivot, n.item) <= 0 {
 		if !t.visitAscend(n.left, pivot, visitor) {
 			return false
 		}
 		if !visitor(n.item) {
 			return false
 		}
+		//since n.right is > n.item by the comparison, we can speed up by not comparing
+		return t.visitAscend(n.right, nil, visitor)
 	}
 	return t.visitAscend(n.right, pivot, visitor)
+}
+
+// Visit items less-than-or-equal to the pivot.  If the pivot is null, this visits all items in descending order.
+func (t *Treap) VisitDescend(pivot Item, visitor ItemVisitor) {
+	t.visitDescend(t.root, pivot, visitor)
+}
+
+func (t *Treap) visitDescend(n *node, pivot Item, visitor ItemVisitor) bool {
+	if n == nil {
+		return true
+	}
+	if pivot == nil || t.compare(pivot, n.item) >= 0 {
+		if !t.visitDescend(n.right, pivot, visitor) {
+			return false
+		}
+		if !visitor(n.item) {
+			return false
+		}
+		//since n.left is < n.item by the comparison, we can speed up by not comparing
+		return t.visitDescend(n.left, nil, visitor)
+	}
+	return t.visitDescend(n.left, pivot, visitor)
 }

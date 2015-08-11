@@ -96,7 +96,7 @@ func load(x *Treap, arr []string) *Treap {
 	return x
 }
 
-func visitExpect(t *testing.T, x *Treap, start string, arr []string) {
+func visitExpect(t *testing.T, x *Treap, start Item, arr []string) {
 	n := 0
 	x.VisitAscend(start, func(i Item) bool {
 		if i.(string) != arr[n] {
@@ -118,6 +118,7 @@ func TestVisit(t *testing.T) {
 
 	visitX := func() {
 		visitExpect(t, x, "a", []string{"a", "b", "c", "d", "e"})
+		visitExpect(t, x, nil, []string{"a", "b", "c", "d", "e"})
 		visitExpect(t, x, "a1", []string{"b", "c", "d", "e"})
 		visitExpect(t, x, "b", []string{"b", "c", "d", "e"})
 		visitExpect(t, x, "b1", []string{"c", "d", "e"})
@@ -137,6 +138,7 @@ func TestVisit(t *testing.T) {
 	y = y.Delete("c")
 
 	visitExpect(t, y, "a", []string{"b", "cc", "d", "e", "f"})
+	visitExpect(t, y, nil, []string{"b", "cc", "d", "e", "f"})
 	visitExpect(t, y, "a1", []string{"b", "cc", "d", "e", "f"})
 	visitExpect(t, y, "b", []string{"b", "cc", "d", "e", "f"})
 	visitExpect(t, y, "b1", []string{"cc", "d", "e", "f"})
@@ -256,4 +258,76 @@ func TestPriorityAfterUpsert(t *testing.T) {
 		"l": 18,
 		"n": 19,
 	})
+}
+
+func visitDescendExpect(t *testing.T, x *Treap, start Item, arr []string) {
+	n := 0
+	x.VisitDescend(start, func(i Item) bool {
+		if i.(string) != arr[n] {
+			t.Errorf("expected visit item: %v, saw: %v (%v)", arr[n], i, arr)
+		}
+		n++
+		return true
+	})
+	if n != len(arr) {
+		t.Errorf("expected # visit callbacks: %v, saw: %v", len(arr), n)
+	}
+}
+
+func TestVisitDescend(t *testing.T) {
+	x := NewTreap(stringCompare)
+	visitDescendExpect(t, x, "a", []string{})
+
+	x = load(x, []string{"e", "d", "c", "c", "a", "b", "a"})
+
+	visitX := func() {
+		visitDescendExpect(t, x, "a", []string{"a"})
+		visitDescendExpect(t, x, "a1", []string{"a"})
+		visitDescendExpect(t, x, "b", []string{"b", "a"})
+		visitDescendExpect(t, x, "b1", []string{"b", "a"})
+		visitDescendExpect(t, x, "c", []string{"c", "b", "a"})
+		visitDescendExpect(t, x, "c1", []string{"c", "b", "a"})
+		visitDescendExpect(t, x, "d", []string{"d", "c", "b", "a"})
+		visitDescendExpect(t, x, "d1", []string{"d", "c", "b", "a"})
+		visitDescendExpect(t, x, "e", []string{"e", "d", "c", "b", "a"})
+		visitDescendExpect(t, x, "f", []string{"e", "d", "c", "b", "a"})
+		visitDescendExpect(t, x, nil, []string{"e", "d", "c", "b", "a"})
+	}
+	visitX()
+
+	var y *Treap
+	y = x.Upsert("f", 1)
+	y = y.Delete("a")
+	y = y.Upsert("cc", 2)
+	y = y.Delete("c")
+
+	visitDescendExpect(t, y, "a", []string{})
+	visitDescendExpect(t, y, "a1", []string{})
+	visitDescendExpect(t, y, "b", []string{"b"})
+	visitDescendExpect(t, y, "b1", []string{"b"})
+	visitDescendExpect(t, y, "c", []string{"b"})
+	visitDescendExpect(t, y, "c1", []string{"b"})
+	visitDescendExpect(t, y, "cd", []string{"cc", "b"})
+	visitDescendExpect(t, y, "d", []string{"d", "cc", "b"})
+	visitDescendExpect(t, y, "d1", []string{"d", "cc", "b"})
+	visitDescendExpect(t, y, "e", []string{"e", "d", "cc", "b"})
+	visitDescendExpect(t, y, "f", []string{"f", "e", "d", "cc", "b"})
+	visitDescendExpect(t, y, "z", []string{"f", "e", "d", "cc", "b"})
+	visitDescendExpect(t, y, nil, []string{"f", "e", "d", "cc", "b"})
+
+	// The x treap should be unchanged.
+	visitX()
+
+	if x.Min() != "a" {
+		t.Errorf("expected min of a")
+	}
+	if x.Max() != "e" {
+		t.Errorf("expected max of d")
+	}
+	if y.Min() != "b" {
+		t.Errorf("expected min of b")
+	}
+	if y.Max() != "f" {
+		t.Errorf("expected max of f")
+	}
 }
