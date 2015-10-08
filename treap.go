@@ -18,10 +18,25 @@ type node struct {
 	priority int
 	left     *node
 	right    *node
+	count    int
+}
+
+func (n *node) getCount() int {
+	if n == nil {
+		return 0
+	}
+	return n.count
 }
 
 func NewTreap(c Compare) *Treap {
 	return &Treap{compare: c, root: nil}
+}
+
+func (t *Treap) Len() int {
+	if t.root == nil {
+		return 0
+	}
+	return t.root.count
 }
 
 func (t *Treap) Min() Item {
@@ -62,7 +77,7 @@ func (t *Treap) Get(target Item) Item {
 }
 
 func (t *Treap) Upsert(item Item, itemPriority int) *Treap {
-	r := t.union(t.root, &node{item: item, priority: itemPriority})
+	r := t.union(t.root, &node{item: item, priority: itemPriority, count: 1})
 	return &Treap{compare: t.compare, root: r}
 }
 
@@ -76,27 +91,33 @@ func (t *Treap) union(this *node, that *node) *node {
 	if this.priority > that.priority {
 		left, middle, right := t.split(that, this.item)
 		if middle == nil {
+			uLeft, uRight := t.union(this.left, left), t.union(this.right, right)
 			return &node{
 				item:     this.item,
 				priority: this.priority,
-				left:     t.union(this.left, left),
-				right:    t.union(this.right, right),
+				left:     uLeft,
+				right:    uRight,
+				count:    1 + uLeft.getCount() + uRight.getCount(),
 			}
 		}
+		uLeft, uRight := t.union(this.left, left), t.union(this.right, right)
 		return &node{
 			item:     middle.item,
 			priority: middle.priority,
-			left:     t.union(this.left, left),
-			right:    t.union(this.right, right),
+			left:     uLeft,
+			right:    uRight,
+			count:    1 + uLeft.getCount() + uRight.getCount(),
 		}
 	}
 	// We don't use middle because the "that" has precendence.
 	left, _, right := t.split(this, that.item)
+	uLeft, uRight := t.union(left, that.left), t.union(right, that.right)
 	return &node{
 		item:     that.item,
 		priority: that.priority,
-		left:     t.union(left, that.left),
-		right:    t.union(right, that.right),
+		left:     uLeft,
+		right:    uRight,
+		count:    1 + uLeft.getCount() + uRight.getCount(),
 	}
 }
 
@@ -117,6 +138,7 @@ func (t *Treap) Split(s Item) (*Treap, *Treap, *Treap) {
 			priority: nmiddle.priority,
 			left:     nil,
 			right:    nil,
+			count:    1,
 		}}
 	}
 	right := &Treap{compare: t.compare, root: nright}
@@ -138,6 +160,7 @@ func (t *Treap) split(n *node, s Item) (*node, *node, *node) {
 			priority: n.priority,
 			left:     right,
 			right:    n.right,
+			count:    1 + right.getCount() + n.right.getCount(),
 		}
 	}
 	left, middle, right := t.split(n.right, s)
@@ -146,6 +169,7 @@ func (t *Treap) split(n *node, s Item) (*node, *node, *node) {
 		priority: n.priority,
 		left:     n.left,
 		right:    left,
+		count:    1 + n.left.getCount() + left.getCount(),
 	}, middle, right
 }
 
@@ -163,18 +187,22 @@ func (t *Treap) join(this *node, that *node) *node {
 		return this
 	}
 	if this.priority > that.priority {
+		right := t.join(this.right, that)
 		return &node{
 			item:     this.item,
 			priority: this.priority,
 			left:     this.left,
-			right:    t.join(this.right, that),
+			right:    right,
+			count:    1 + this.left.getCount() + right.getCount(),
 		}
 	}
+	left := t.join(this, that.left)
 	return &node{
 		item:     that.item,
 		priority: that.priority,
-		left:     t.join(this, that.left),
+		left:     left,
 		right:    that.right,
+		count:    1 + left.getCount() + that.right.getCount(),
 	}
 }
 

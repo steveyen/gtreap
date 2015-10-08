@@ -2,11 +2,17 @@ package gtreap
 
 import (
 	"bytes"
+	"math/rand"
+	"sort"
 	"testing"
 )
 
 func stringCompare(a, b interface{}) int {
 	return bytes.Compare([]byte(a.(string)), []byte(b.(string)))
+}
+
+func intCompare(a, b interface{}) int {
+	return a.(int) - b.(int)
 }
 
 func TestTreap(t *testing.T) {
@@ -295,5 +301,91 @@ func TestVisitDescend(t *testing.T) {
 	}
 	if y.Max() != "f" {
 		t.Errorf("expected max of f")
+	}
+}
+
+func TestTreapCount(t *testing.T) {
+	x := NewTreap(intCompare)
+	r := rand.New(rand.NewSource(1984))
+	vals := make([]int, 1000)
+
+	for i := 0; i < len(vals); i++ {
+		vals[i] = r.Int()
+		x = x.Upsert(vals[i], r.Int())
+		if x.Len() != i+1 {
+			t.Errorf("expected count after upsert to be %d but was %d", i+1, x.Len())
+		}
+	}
+
+	// store a copy of the full treap before we start deleting things from it, we'll use this later
+	fullTreap := x
+
+	for i := len(vals); i > 0; i-- {
+		// pick an index between 0 and i (i is sliding down so we will only ever pick values
+		// we've never used before, since all the values we have used will be above i)
+		idx := r.Intn(i)
+		// now delete the selected value from the treap
+		x = x.Delete(vals[idx])
+		// this should cause the length of the treap to decrease by one (which means it should match i-1)
+		if x.Len() != i-1 {
+			t.Errorf("expected count after delete to be %d but was %d", i, x.Len())
+		}
+		// here we move (by swapping) the selected value to the end of the slice so that
+		// it won't be picked again
+		vals[idx], vals[i-1] = vals[i-1], vals[idx]
+	}
+
+	// now we sort the values so they are in the same order they would be in the treap. This is important
+	// so that when we start splitting the treap we know how many items are to the left and right of a given
+	// value. We also restore x to the full treap before we deleted everything.
+	sort.Ints(vals)
+	x = fullTreap
+
+	for i := 0; i < len(vals); i++ {
+		// randomly pick an index and split the treap on the value at that index
+		idx := r.Intn(len(vals))
+		left, middle, right := x.Split(vals[idx])
+		// at this point because vals has been sorted, we know that the left treap should contain
+		// all values less than vals[idx] (which is idx values) and the right treap should contain
+		// all values greater than vals[idx] (which is len(vals)-idx-1), and that the middle treap
+		// contains one value.
+		if left.Len() != idx {
+			t.Errorf("expected left count after split to be %d but was %d", idx, left.Len())
+		}
+		if middle.Len() != 1 {
+			t.Errorf("expected middle count after split to be 1 but was %d", middle.Len())
+		}
+		if right.Len() != len(vals)-idx-1 {
+			t.Errorf("expected right count after split to be %d but was %d", len(vals)-idx-1, right.Len())
+		}
+	}
+
+	// finally, do some splits on values not in the treap. Note: the random seed above was selected such that
+	// this section will not generate any duplicate values that are already in the treap.
+	for i := 0; i < 50; i++ {
+		// first we get a random value that we're going to split on, and then search through our values list
+		// to find the index where our random value would go. This tells us how many values in the treap are
+		// less than the random value and how many are greater (and thus what the left and right lens should be)
+		val := r.Int()
+		var idx int
+		for idx = len(vals) - 1; idx > 0; idx-- {
+			if vals[idx] < val {
+				break
+			}
+		}
+
+		// vals[idx] is now the largest value in vals that is less than our randomly selected value, which
+		// means there are idx+1 values in the treap that are less than val, and len(vals)-idx-1 values
+		// which are greater than it.
+		left, middle, right := x.Split(val)
+		if middle != nil {
+			t.Errorf("expected middle to be nil but wasn't")
+		}
+		if left.Len() != idx+1 {
+			t.Errorf("expected left count after split to be %d but was %d", idx, left.Len())
+		}
+		if right.Len() != len(vals)-idx-1 {
+			t.Errorf("expected right count after split to be %d but was %d", len(vals)-idx-1, right.Len())
+		}
 	}
 }
