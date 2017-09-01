@@ -181,7 +181,7 @@ func TestVisit(t *testing.T) {
 		t.Errorf("expected min of a")
 	}
 	if lmt.Max() != "b" {
-		t.Errorf("expeced max of b")
+		t.Errorf("expected max of b")
 	}
 }
 
